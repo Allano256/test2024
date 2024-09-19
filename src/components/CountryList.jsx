@@ -2,9 +2,12 @@ import Spinner from "./Spinner"
 import styles from './CountryList.module.css'
 import CountryItem from "./CountryItem"
 import Message from "./Message"
+import {useCities} from "../contexts/CitiesContext"
 
+function CountryList() {
+  
+const{cities, isLoading} = useCities();
 
-function CountryList({cities, isLoading}) {
     if (isLoading) return <Spinner />
     // This means that if there is no city, then give a message
     if(!cities.length) 
@@ -20,7 +23,7 @@ function CountryList({cities, isLoading}) {
   return (
     <ul className={styles.CountryList} >
         {countries.map((country)=> (
-            <CountryItem country={country} />
+            <CountryItem country={country} key={country} />
         ))}
         
     </ul>

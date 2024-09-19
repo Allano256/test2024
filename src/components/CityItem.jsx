@@ -12,11 +12,13 @@ const formatDate = (date) =>
 
 function CityItem({city}) {
     const {cityName, emoji, date, id, position} =city;
+    const {currentCity} = useCities()
+  
 
     return (
         <div>
             <li>
-                <Link className={styles.CityItem} to={ `${id}?lat=${position.lat}&lng=${position.lng}`}>
+                <Link className= {`${styles.CityItem} ${id===currentCity.id? styles['CityItem--active'] : ''}`}    to={ `${id}?lat=${position.lat}&lng=${position.lng}`}>
                 <span className={styles.emoji}>{emoji}</span>
               <h3 className={styles.name}>{cityName}</h3>
               <time className={styles.date}> ({formatDate(date)})</time>
