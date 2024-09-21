@@ -24,7 +24,8 @@ function City() {
 
     useEffect(function(){
       getCity(id);
-    }, [id]);
+    }, [id, getCity]
+  );
 
   
 

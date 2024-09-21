@@ -1,56 +1,169 @@
-import { createContext,useState, useEffect, useContext } from "react";
+import { createContext,useState, useEffect, useContext, useReducer, useCallback } from "react";
 
 const BASE_URL="http://localhost:9000"
 
 const CitiesContext =createContext();
 
+const initialState= {
+  cities: [],
+  isLoading: false,
+  currentCity: {},
+}
+
+function reducer(state, action){
+  switch(action.type){
+
+    case 'loading':
+      return {...state, isLoading: true};
+
+    case "cities/loaded":
+      return {
+        ...state,
+         isLoading:false,
+        cities: action.payload,
+      };
+      case 'city/loaded':
+        return {
+          ...state, isLoading: false,
+         currentCity: action.payload};
+         
+    
+
+    case 'city/created':
+      return {
+        ...state,
+        isLoading: false,
+        cities: [...state.cities, action.payload],
+        currentCity: action.payload,
+        // So we add in more logic that wen the city is create,it becomes the current city
+      };
+
+    case 'city/deleted':
+      return {
+        ...state,
+        isLoading: false,
+        cities: state.cities.filter((city)=> city.id !== action.payload),
+        // When a city is deleted, we set it back to the original state
+        currentCity:{},
+      };
+
+    case 'rejected':
+      return {
+        ...state,
+        isLoading:false,
+        error: action.payload,
+      };
+
+    default:
+      throw new Error("Unknown action type");
+        
+  }
+}
 
 function CitiesProvider({children}){
-    const[cities, setCities]=useState([]);
-  
-  const [isLoading, setIsLoading] = useState(false);
-  const[currentCity,setCurrentCity]= useState();
+
+  const[{cities, isLoading, currentCity, error}, dispatch]= useReducer(
+    reducer,
+    initialState
+  );
+
+  //  const[cities, setCities]=useState([]);
+  // const [isLoading, setIsLoading] = useState(false);
+  // const[currentCity,setCurrentCity]= useState();
 
   // Load ata on mount using useEffect
   useEffect(function () {
     async function fetchCities(){
+      dispatch({type: "loading"});
       try {
         const res = await fetch(`${BASE_URL}/cities `)
         const data = await res.json();
-        setCities(data);
+        // setCities(data);
+        dispatch({type: "cities/loaded", payload: data})
       }
         
      catch {
-      alert('There was an error loading data...')
-    } finally{
-      setIsLoading(false)
-    }
+      dispatch( { type:"rejected",
+        payload: 'There was an error loading cities...'});
+    } 
 
   }
   fetchCities();
 
   }, []);
 
+ const getCity= useCallback(
+  async function getCity(id){
+    // We can check if the id we getting matches the country we request in the URL, convert id to Number as everything coming from the URL is a string.
+    if(Number(id) === currentCity.id) return;
 
-async function getCity(id){
+    dispatch({type: "loading"});
+    try{
       
-    try {
-      setIsLoading(true);
-      const res = await fetch(`${BASE_URL}/cities/${id} `);
+      const res= await fetch(`${BASE_URL}/cities/${id}`);
       const data = await res.json();
-      setCurrentCity(data);
+      // setCurrentCity(data);
+      dispatch({type: "city/loaded", payload: data})
+
+    } catch {
+      dispatch( { type:"rejected",
+        payload: 'There was an error loading data...'});
+    } 
+  }, [currentCity.id]
+ ); 
+
+
+async function createCity(newCity){
+  dispatch({type: "loading"});
+    try {
+     
+      const res = await fetch(`${BASE_URL}/cities/${id} `,{
+        method:"POST",
+        body: JSON.stringify(newCity),
+        headers:{
+          "Content/Type": "application/json",
+        },
+      });
+      const data = await res.json();
+     dispatch({type:'city/created', payload:data})
     }
       
    catch {
-    alert('There was an error loading data...')
-  } finally{
-    setIsLoading(false)
-  }
+    dispatch( { type:"rejected",
+      payload: 'There was an error creating the city...'});
+  } 
  
   }
 
+     
+async function deleteCity(id){
+  dispatch({type: "loading"});
+      
+  try {
+   
+    await fetch(`${BASE_URL}/cities/${id} `,{
+      method:"DELETE",
+     
+    });
+   
+    // setCities((cities)=> cities.filter((city)=> city.id !== id));
+    dispatch({type: 'city/deleted', payload: id})
+  }
+    
+ catch {
+  dispatch( { type:"rejected",
+    payload: 'There was an error deleting the city...'});
+}
 
-  return <CitiesContext.Provider   value={{cities, isLoading, currentCity, getCity,}}>
+}
+
+
+
+  return <CitiesContext.Provider   value={{cities,
+   isLoading, 
+   currentCity, 
+   error,
+   getCity, createCity, deleteCity,}}>
     {children}
     </CitiesContext.Provider>
 
